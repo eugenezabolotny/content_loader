@@ -6,8 +6,9 @@ import re
 PATH_FROM = '/home/eugene/Videos/mediadata/'
 PATH_TO = '/home/eugene/Videos/storage/'
 
-extra_metadata = PATH_FROM + 'metadata.json'
-metadata = PATH_TO + 'metadata.json'
+extra_metadata = os.path.join(PATH_FROM, 'metadata.json')
+storage_metadata = os.path.join(PATH_TO, 'config/metadata.json')
+storage_movies = os.path.join(PATH_TO, 'movies/')
 
 
 def is_metadata_exists():
@@ -16,7 +17,7 @@ def is_metadata_exists():
 
     :return: bool, True if both exists
     """
-    return os.path.exists(metadata) and os.path.exists(extra_metadata)
+    return os.path.exists(storage_metadata) and os.path.exists(extra_metadata)
 
 
 def update_movie_object(ext_movie, int_metadata):
@@ -39,7 +40,9 @@ def update_movie_object(ext_movie, int_metadata):
     movie_dirname = ' '.join(movie_dirname.split())
     movie_dirname = movie_dirname.replace(' ', '-')
 
-    ext_movie['path'] = 'mv-' + movie_dirname + '/' + movie_filename
+    ext_movie['path'] = 'api/src/movies/mv-' + movie_dirname + '/' + movie_filename
+
+    ext_movie['cover'] = ext_movie['cover'].split('/')[-1]
 
     return ext_movie
 
@@ -53,11 +56,11 @@ def copy_movie(ext_movie, int_movie):
     :return: Null
     """
     cover_src = os.path.join(PATH_FROM, ext_movie['cover'])
-    cover_dst = PATH_TO
+    cover_dst = storage_movies
     shutil.copy(cover_src, cover_dst)
 
     movie_src = os.path.join(PATH_FROM, ext_movie['path'])
-    movie_dst = os.path.join(PATH_TO, int_movie['path'].split('/')[-2] + '/')
+    movie_dst = os.path.join(storage_movies, int_movie['path'].split('/')[-2] + '/')
     if not os.path.exists(movie_dst):
         os.mkdir(movie_dst)
     if movie_src.split('.')[-1] == 'm3u8':
@@ -78,9 +81,9 @@ def extend_media():
     :return: Null
     """
     if is_metadata_exists():
-        with open(metadata) as json_file:
+        with open(storage_metadata, encoding="utf-8") as json_file:
             json_metadata = json.load(json_file)
-        with open(extra_metadata) as json_file:
+        with open(extra_metadata, encoding="utf-8") as json_file:
             json_extra_metadata = json.load(json_file)
 
         for movie in json_extra_metadata['movies']:
@@ -90,7 +93,7 @@ def extend_media():
                 json_metadata['movies'].append(new_movie)
                 copy_movie(original_movie, new_movie)
 
-        with open(PATH_TO + 'extended_metadata.json', 'w') as outfile:
+        with open(storage_metadata, 'w') as outfile:
             json.dump(json_metadata, outfile, indent=4, sort_keys=True)
     else:
         pass
